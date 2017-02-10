@@ -148,6 +148,7 @@ PING_SECRET = ''  # Provided by your administrator
 GOOGLE_CLIENT_ID = os.getenv('SECURITY_MONKEY_GOOGLE_CLIENT_ID', '')
 GOOGLE_AUTH_ENDPOINT = os.getenv('SECURITY_MONKEY_GOOGLE_AUTH_ENDPOINT', '')
 GOOGLE_SECRET = os.getenv('SECURITY_MONKEY_GOOGLE_SECRET', '')
+GOOGLE_HOSTED_DOMAIN = os.getenv('SECURITY_MONKEY_GOOGLE_HOSTED_DOMAIN', '')
 
 ONELOGIN_APP_ID = '<APP_ID>'  # OneLogin App ID provider by your administrator
 ONELOGIN_EMAIL_FIELD = 'User.email'  # SAML attribute used to provide email address
