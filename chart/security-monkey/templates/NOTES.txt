@@ -1,0 +1,46 @@
+1. Get the application URL by running these commands:
+{{- if contains "NodePort" .Values.web.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ template "fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT/login
+{{- else if contains "LoadBalancer" .Values.web.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer to be available.
+           You can watch the status of by running 'kubectl get svc -w {{ template "fullname" . }}'
+  export SERVICE_HOST=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  echo https://$SERVICE_HOST:{{ .Values.web.service.externalPort }}
+{{- else if contains "ClusterIP"  .Values.web.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "fullname" . }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl port-forward $POD_NAME 8080:{{ .Values.web.service.externalPort }}
+{{- end }}
+
+2. Once deployed you need to set up the database and credentials:
+
+{{- if not .Values.security_monkey_postgres_user }}
+  Note: Please set both security_monkey_postgres_user and security_monkey_postgres_password in values.yaml to be able to finish setup.
+{{- end }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "fullname" . }}" -o jsonpath="{.items[0].metadata.name}")
+  export SECURITY_MONKEY_POSTGRES_PASSWORD=$(echo $(kubectl get secret --namespace {{ .Release.Namespace }} {{ template "fullname" . }} -o jsonpath="{.data.security_monkey_postgres_password}") | base64 --decode; echo)
+  export POSTGRES_ROOT_USERNAME=<root username>
+
+  kubectl --namespace {{ .Release.Namespace }} exec -it $POD_NAME -- psql -h{{ default "database" .Values.security_monkey_postgres_host }} -U$POSTGRES_ROOT_USERNAME postgres
+
+  Then run:
+
+  CREATE DATABASE "secmonkey";
+  CREATE ROLE "{{ .Values.security_monkey_postgres_user }}" LOGIN PASSWORD '$SECURITY_MONKEY_POSTGRES_PASSWORD';
+  CREATE SCHEMA secmonkey
+  GRANT Usage, Create ON SCHEMA "secmonkey" TO "{{ .Values.security_monkey_postgres_user }}";
+  set timezone TO 'GMT';
+  select now();
+  \q
+
+
+3. Once database is set up, run the migrations:
+
+{{- if not .Values.security_monkey_postgres_user }}
+  You can only run migrations when 2. is done.
+{{- end }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "fullname" . }}" -o jsonpath="{.items[0].metadata.name}")
+
+  kubectl --namespace {{ .Release.Namespace }} exec -it $POD_NAME -- python manage.py db upgrade

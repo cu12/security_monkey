@@ -1,0 +1,96 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+    spec:
+      containers:
+      # API
+      - name: "{{ .Chart.Name }}-api"
+        image: "{{ .Values.api.image.repository }}:{{ .Values.imageTag }}"
+        imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+        resources:
+{{ toYaml .Values.api.resources | indent 12 }}
+        env:
+        - name: SECURITY_MONKEY_FQDN
+          value: {{ default "" .Values.security_monkey_fqdn | quote }}
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "fullname" . }}
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "fullname" . }}
+              key: aws_secret_access_key
+        - name: SECURITY_MONKEY_POSTGRES_HOST
+          value: {{ default "database" .Values.security_monkey_postgres_host | quote }}
+        - name: SECURITY_MONKEY_POSTGRES_USER
+          value: {{ default "" .Values.security_monkey_postgres_user | quote }}
+        - name: SECURITY_MONKEY_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "fullname" . }}
+              key: security_monkey_postgres_password
+
+      # SCHEDULER
+      - name: {{ .Chart.Name }}-scheduler
+        image: "{{ .Values.scheduler.image.repository }}:{{ .Values.imageTag }}"
+        imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+        command:
+        - ./docker/scheduler-start.sh
+        resources:
+{{ toYaml .Values.scheduler.resources | indent 12 }}
+        env:
+        - name: SECURITY_MONKEY_POSTGRES_HOST
+          value: {{ default "database" .Values.security_monkey_postgres_host | quote }}
+        - name: SECURITY_MONKEY_POSTGRES_USER
+          value: {{ default "" .Values.security_monkey_postgres_user | quote }}
+        - name: SECURITY_MONKEY_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "fullname" . }}
+              key: security_monkey_postgres_password
+
+      # WEB
+      - name: {{ .Chart.Name }}-web
+        image: "{{ .Values.web.image.repository }}:{{ .Values.imageTag }}"
+        imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+        command:
+        - nginx
+        resources:
+{{ toYaml .Values.web.resources | indent 12 }}
+        volumeMounts:
+        - name: {{ template "fullname" . }}-nginx-config
+          mountPath: /etc/nginx/conf.d/
+        ports:
+        - containerPort: {{ .Values.web.service.internalPort }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.web.service.internalPort }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.web.service.internalPort }}
+      volumes:
+        - name: {{ template "fullname" . }}-nginx-config
+          configMap:
+            name: {{ template "fullname" . }}-nginx-config
+            items:
+            - key: security-monkey
+              path: security-monkey.conf
+
+
+

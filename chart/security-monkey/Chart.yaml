@@ -1,0 +1,9 @@
+apiVersion: v1
+description: Netflix's Security Monkey Helm chart for Kubernetes
+name: security-monkey
+version: v0.8.0
+sources:
+  - https://github.com/cu12/security_monkey
+maintainers:
+  - name: Domonkos Czinke
+    email: seayou@gmail.com

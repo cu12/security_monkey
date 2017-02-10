@@ -1,0 +1,59 @@
+# Default values for security_monkey.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+imageTag: v0.8.0
+
+## *Mandatory* Security Monkey FQDN
+security_monkey_fqdn: security-monkey.example.com
+## Set AWS credentials
+# aws_access_key_id:
+# aws_secret_access_key:
+
+## *Mandatory* Postgres credentials
+security_monkey_postgres_user: postgres
+security_monkey_postgres_password: change_me
+
+aws_rds_endpoint: change_me
+
+api:
+  image:
+    repository: seayou/security_monkey-api
+  resources:
+    limits:
+      cpu: 100m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 512Mi
+
+scheduler:
+  image:
+    repository: seayou/security_monkey-api
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+web:
+  image:
+    repository: seayou/security_monkey-nginx
+  service:
+    name: web
+    type: LoadBalancer
+    externalPort: 443
+    internalPort: 80
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  annotations:
+## *Mandatory* SSL Certificate ARN
+# for eg. arn:aws:iam::XXXXXXXXXXXX:server-certificate/security-monkey.example.com
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: change_me
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
