@@ -25,9 +25,7 @@ RUN apt-get update &&\
   rm -rf /var/lib/apt/lists/*
 
 RUN cd /usr/local/src &&\
-#   git clone -b $SECURITY_MONKEY_VERSION https://github.com/Netflix/security_monkey.git
-  mkdir -p security_monkey
-ADD . /usr/local/src/security_monkey
+    git clone -b $SECURITY_MONKEY_VERSION https://github.com/Netflix/security_monkey.git
 
 RUN cd /usr/local/src/security_monkey/dart &&\
   /usr/lib/dart/bin/pub get &&\
@@ -43,8 +41,7 @@ RUN /bin/rm /etc/nginx/conf.d/default.conf &&\
 WORKDIR /etc/nginx
 EXPOSE 443
 
-ADD docker/nginx/securitymonkey.conf /etc/nginx/conf.d/securitymonkey.conf
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
-# ADD docker/nginx/server.crt docker/nginx/server.key /etc/nginx/ssl/
+ADD securitymonkey.conf /etc/nginx/conf.d/securitymonkey.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 ENTRYPOINT ["/usr/local/src/security_monkey/docker/nginx/start-nginx.sh"]
